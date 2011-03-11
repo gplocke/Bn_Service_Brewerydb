@@ -277,6 +277,27 @@ class Bn_Service_Brewerydb
         return $this->_request('glassware/' . $glasswareId, $args);
     }
 
+    /**
+     * Searches the api for the given query
+     *
+     * @param int $query The query string to search for
+     *
+     * @throws Bn_Service_Brewerydb_Exception
+     *
+     * @return stdClass object from the request
+     *
+     */
+    public function search($query, $page = 1)
+    {
+
+        $args = array(
+            'q'    => $query,
+            'page' => $page
+        );
+
+        return $this->_request('search/', $args);
+    }
+
 
     /**
      * Sends a request using curl to the required endpoint
