@@ -77,6 +77,7 @@ class Bn_Service_Brewerydb
     {
         if ($geo == true) {
             if (is_null($lat) || is_null($lng)) {
+                require_once 'Bn/Service/Brewerydb/Exception.php';
                 throw new Bn_Service_Brewerydb_Exception('If doing a geo search, lat and lng values are required');
             }
         }
@@ -287,13 +288,25 @@ class Bn_Service_Brewerydb
      * @return stdClass object from the request
      *
      */
-    public function search($query, $page = 1)
+    public function search($query, $type = '', $metadata = true, $page = 1)
     {
 
+        $type = strtolower($type);
+
+        if ($type != '' || $type != 'beer' || $type != 'brewery') {
+            require_once 'Bn/Service/Brewerydb/Exception.php';
+            throw new Bn_Service_Brewerydb_Exception('Type must be either "beer", "brewery", or empty');
+        }
+
         $args = array(
-            'q'    => $query,
-            'page' => $page
+            'q'        => $query,
+            'page'     => $page,
+            'metadata' => $metadata
         );
+
+        if ($type != '') {
+            $args['type'] = $type;
+        }
 
         return $this->_request('search/', $args);
     }
