@@ -293,7 +293,7 @@ class Bn_Service_Brewerydb
 
         $type = strtolower($type);
 
-        if ($type != '' || $type != 'beer' || $type != 'brewery') {
+        if ($type != '' && $type != 'beer' && $type != 'brewery') {
             require_once 'Bn/Service/Brewerydb/Exception.php';
             throw new Bn_Service_Brewerydb_Exception('Type must be either "beer", "brewery", or empty');
         }
