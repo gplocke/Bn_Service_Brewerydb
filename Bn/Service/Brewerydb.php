@@ -123,7 +123,28 @@ class Bn_Service_Brewerydb
 
         return $this->_request('breweries/' . $breweryId, $args);
     }
+    
+    /**
+     * Returns info about a single beer
+     * 
+     * @param int $beerId The id of the Beer to return
+     * @param bool $metadata Whether or not to return metadata about the beer
+     * 
+     *
+     * @throws Bn_Service_Brewerydb_Exception
+     *
+     * @return stdClass object from the request
+     *
+     */
+	public function getBeer($beerId = 1, $metadata = true)
+    {
 
+        $args = array(
+            'metadata'  => $metadata
+        );
+
+        return $this->_request('beers/' . $beerId, $args);
+    }
 
     /**
      * Returns the list of beer for a given brewery ID
