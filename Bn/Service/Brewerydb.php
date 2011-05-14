@@ -13,8 +13,13 @@ class Bn_Service_Brewerydb
      *
      * @var string
      */
-    const BASE_URL = 'http://brewerydb.com/api';
+    const BASE_URL = 'http://test.brewerydb.com/api';
 
+    const GET = 'GET';
+    const POST = 'POST';
+    const PUT = 'PUT';
+    const DELETE = 'DELETE';
+    
     /**
      * API key
      *
@@ -49,6 +54,11 @@ class Bn_Service_Brewerydb
      * @var string
      */
     protected $_lastRequestUri = null;
+    
+    /**
+     * Transfer type (POST, GET, PUT, DELETE)
+     */
+    protected $_transferType = self::GET;
 
     /**
      * Constructor
@@ -58,6 +68,34 @@ class Bn_Service_Brewerydb
     public function __construct($apiKey)
     {
         $this->_apiKey = (string) $apiKey;
+    }
+    
+    /**
+     * Sets the response format.  Must be either 'xml' or 'json'.  Will set
+     * to 'json' by default if something invalid is specified.
+     *
+     * @return string
+     */
+    public function setFormat($format)
+    {
+
+        $format = strtolower($format);
+
+        if ($format != 'xml' && $format != 'json') {
+            $this->_format = 'json';
+        } else {
+            $this->_format = $format;
+        }
+
+        return $this;
+    }
+    
+    /**
+     * Gets the currently set response format.
+     */
+    public function getFormat()
+    {
+        return $this->_format;
     }
 
     /**
@@ -101,6 +139,35 @@ class Bn_Service_Brewerydb
 
         return $this->_request('breweries', $args);
     }
+    
+    /**
+     * Returns a list of breweries with the given criteria
+     *
+     * @param int $boxes The array of bounding boxes
+     * @param bool $metadata Whether or not to return metadata about the brewery
+     *
+     * @throws Bn_Service_Brewerydb_Exception
+     *
+     * @return stdClass object from the request
+     *
+     */
+    public function getBreweriesByBoundingBoxes($boxes, $metadata = true)
+    {
+        if (empty($boxes)) {
+            require_once 'Bn/Service/Brewerydb/Exception.php';
+            throw new Bn_Service_Brewerydb_Exception('If doing a map route search, an array of lat and lng bounds are required');
+        }
+        
+        $this->_transferType = self::POST;
+
+        $args = array(
+            'b'        => $boxes,
+            'metadata' => $metadata
+        );
+
+        return $this->_request('maproute', $args);
+    }
+    
 
     /**
      * Returns info about a single brewery
@@ -123,28 +190,7 @@ class Bn_Service_Brewerydb
 
         return $this->_request('breweries/' . $breweryId, $args);
     }
-    
-    /**
-     * Returns info about a single beer
-     * 
-     * @param int $beerId The id of the Beer to return
-     * @param bool $metadata Whether or not to return metadata about the beer
-     * 
-     *
-     * @throws Bn_Service_Brewerydb_Exception
-     *
-     * @return stdClass object from the request
-     *
-     */
-	public function getBeer($beerId = 1, $metadata = true)
-    {
 
-        $args = array(
-            'metadata'  => $metadata
-        );
-
-        return $this->_request('beers/' . $beerId, $args);
-    }
 
     /**
      * Returns the list of beer for a given brewery ID
@@ -199,13 +245,35 @@ class Bn_Service_Brewerydb
 
         return $this->_request('beers', $args);
     }
+    
+    /**
+     * Returns info about a single beer
+     * 
+     * @param int $beerId The id of the Beer to return
+     * @param bool $metadata Whether or not to return metadata about the beer
+     * 
+     *
+     * @throws Bn_Service_Brewerydb_Exception
+     *
+     * @return array from the request
+     *
+     */
+	public function getBeer($beerId = 1, $metadata = true)
+    {
+
+        $args = array(
+            'metadata'  => $metadata
+        );
+
+        return $this->_request('beers/' . $beerId, $args);
+    }
 
     /**
      * Returns the list of all beer styles
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getAllStyles()
@@ -223,7 +291,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getStyle($styleId)
@@ -238,7 +306,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getAllCategories()
@@ -256,7 +324,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getCategory($categoryId)
@@ -272,7 +340,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getAllGlassware()
@@ -289,7 +357,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function getGlassware($glasswareId)
@@ -306,7 +374,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object from the request
+     * @return array from the request
      *
      */
     public function search($query, $type = '', $metadata = true, $page = 1)
@@ -341,7 +409,7 @@ class Bn_Service_Brewerydb
      *
      * @throws Bn_Service_Brewerydb_Exception
      *
-     * @return stdClass object
+     * @return array
      */
     protected function _request($endpoint, $args)
     {
@@ -359,18 +427,43 @@ class Bn_Service_Brewerydb
             if ($value == '') {
                 unset($args[$key]);
             }
-        }
-
-        $this->_lastRequestUri = self::BASE_URL . '/' . $endpoint . '/?' . http_build_query($args);
-
+        }        
+        
         // Set curl options and execute the request
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->_lastRequestUri);
+        
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
+                
+        if ($this->_transferType == self::GET) {
+                
+            $this->_lastRequestUri = self::BASE_URL . '/' . $endpoint . '/?' . http_build_query($args);
+            curl_setopt($ch, CURLOPT_URL, $this->_lastRequestUri);
+            
+        } else if ($this->_transferType == self::POST) {
+            
+            curl_setopt($ch, CURLOPT_POST, true);
+            
+            $this->_lastRequestUri = self::BASE_URL . '/' . $endpoint . '/';
+            curl_setopt($ch, CURLOPT_URL, $this->_lastRequestUri);
+            
+            $body = http_build_query($args);
+            
+            curl_setopt ($ch, CURLOPT_POSTFIELDS, $body);
+            
+        } else if ($this->_transferType == self::PUT) {
+            
+            require_once 'Bn/Service/Brewerydb/Exception.php';
+            throw new Bn_Service_Brewerydb_Exception('PUT not supported');
+            
+        } else if ($this->_transferType == self::DELETE) {
+            
+            require_once 'Bn/Service/Brewerydb/Exception.php';
+            throw new Bn_Service_Brewerydb_Exception('DELETE not supported');
+        }
+        
         $this->_lastRawResponse = curl_exec($ch);
-
+        
         if ($this->_lastRawResponse === false) {
 
             $this->_lastRawResponse = curl_error($ch);
@@ -379,21 +472,14 @@ class Bn_Service_Brewerydb
         }
 
         curl_close($ch);
-
+        
         // Response comes back as either JSON or XML, so we decode it into a stdClass object
         if ($args['format'] == 'xml') {
-            // we only support json, so this shouldn't ever happen, but maybe
-            // in the future we'll let it return XML and treat it differently.
-            // JSON is just way simpler to mess with.
+            $this->_lastParsedResponse = simplexml_load_string($this->_lastRawResponse);
+            $this->_lastParsedResponse = self::_convertSimpleXmlElementObjectIntoArray($this->_lastParsedResponse);
         } else {
-            $this->_lastParsedResponse = json_decode($this->_lastRawResponse);
+            $this->_lastParsedResponse = json_decode($this->_lastRawResponse, true);
         }
-
-        // If the http_code var is not found, the response from the server was unparsable
-        /*if (isset($this->_lastParsedResponse->error)) {
-            require_once 'Bn/Service/Brewerydb/Exception.php';
-            throw new Bn_Service_Brewerydb_Exception('Error parsing response from server.');
-        }*/
 
         // Server provides error messages in http_code and error vars.  If not 200, we have an error.
         if (isset($this->_lastParsedResponse->error)) {
@@ -401,6 +487,17 @@ class Bn_Service_Brewerydb
             throw new Bn_Service_Brewerydb_Exception('Brewerydb Service Error: ' .
                     $this->_lastParsedResponse->error->message);
         }
+        
+        // if it was xml, we'll remove the attributes that were attached to the 
+        // root element if they exist as they were meaningless
+        if ($this->_format == 'xml') {
+            if (isset($this->_lastParsedResponse['@attributes'])) {
+                unset($this->_lastParsedResponse['@attributes']);
+            }
+        }
+        
+        // reset the transfer type if it was changed for a particular request
+        $this->_transferType = self::GET;
 
         return $this->getLastParsedResponse();
     }
@@ -408,7 +505,7 @@ class Bn_Service_Brewerydb
     /**
      * Gets the last parsed response from the service
      *
-     * @return null|stdClass object
+     * @return null|array
      */
     public function getLastParsedResponse()
     {
@@ -418,7 +515,7 @@ class Bn_Service_Brewerydb
     /**
      * Gets the last raw response from the service
      *
-     * @return null|json string
+     * @return null|json string|xml string
      */
     public function getLastRawResponse()
     {
@@ -434,4 +531,90 @@ class Bn_Service_Brewerydb
     {
         return $this->_lastRequestUri;
     }
+    
+    protected static function _convertSimpleXmlElementObjectIntoArray($simpleXmlElementObject, &$recursionDepth=0) {
+      // Keep an eye on how deeply we are involved in recursion.
+
+      // only allow recursion to get to 25 levels before we say nevermind.
+      if ($recursionDepth > 25) {
+        // Fatal error. Exit now.
+        return(null);
+      }
+
+      if ($recursionDepth == 0) {
+          
+        if (!$simpleXmlElementObject instanceof SimpleXMLElement) {
+          // If the external caller doesn't call this function initially
+          // with a SimpleXMLElement object, return now.
+          return(null);
+        } else {
+          // Store the original SimpleXmlElementObject sent by the caller.
+          // We will need it at the very end when we return from here for good.
+          $callerProvidedSimpleXmlElementObject = $simpleXmlElementObject;
+        }
+      } // End of if ($recursionDepth == 0) {
+
+
+      if ($simpleXmlElementObject instanceof SimpleXMLElement) {
+        // Get a copy of the simpleXmlElementObject
+        $copyOfsimpleXmlElementObject = $simpleXmlElementObject;
+        // Get the object variables in the SimpleXmlElement object for us to iterate.
+        $simpleXmlElementObject = get_object_vars($simpleXmlElementObject);
+      }
+
+
+      // It needs to be an array of object variables.
+      if (is_array($simpleXmlElementObject)) {
+        // Initialize the result array.
+        $resultArray = array();
+        // Is the input array size 0? Then, we reached the rare CDATA text if any.
+        if (count($simpleXmlElementObject) <= 0) {
+          // Let us return the lonely CDATA. It could even be
+          // an empty element or just filled with whitespaces.
+          return (trim(strval($copyOfsimpleXmlElementObject)));
+        }
+
+
+        // Let us walk through the child elements now.
+        foreach($simpleXmlElementObject as $key=>$value) {
+          // When this block of code is commented, XML attributes will be
+          // added to the result array.
+          // Uncomment the following block of code if XML attributes are
+          // NOT required to be returned as part of the result array.
+          /*
+          if((is_string($key)) && ($key == '@attributes')) {
+            continue;
+          }
+          */
+
+          // Let us recursively process the current element we just visited.
+          // Increase the recursion depth by one.
+          $recursionDepth++;
+          $resultArray[$key] =
+            self::_convertSimpleXmlElementObjectIntoArray($value, $recursionDepth);
+
+
+          // Decrease the recursion depth by one.
+          $recursionDepth--;
+        } // End of foreach($simpleXmlElementObject as $key=>$value) {
+
+
+        if ($recursionDepth == 0) {
+          // That is it. We are heading to the exit now.
+          // Set the XML root element name as the root [top-level] key of
+          // the associative array that we are going to return to the caller of this
+          // recursive function.
+          $tempArray = $resultArray;
+          $resultArray = array();
+          $resultArray[$callerProvidedSimpleXmlElementObject->getName()] = $tempArray;
+        }
+
+
+        return ($resultArray);
+      } else {
+        // We are now looking at either the XML attribute text or
+        // the text between the XML tags.
+        return (trim(strval($simpleXmlElementObject)));
+      } // End of else
+    } // End of function convertSimpleXmlElementObjectIntoArray.
 }
