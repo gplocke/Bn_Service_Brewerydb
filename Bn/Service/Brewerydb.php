@@ -399,6 +399,21 @@ class Bn_Service_Brewerydb
 
         return $this->_request('search/', $args);
     }
+    
+    /**
+     * Returns featured brewery and beer id
+     *
+     * @throws Bn_Service_Brewerydb_Exception
+     *
+     * @return stdClass object from the request
+     *
+     */
+    public function getFeatured()
+    {
+        $args = array();
+
+        return $this->_request('featured/', $args);
+    }
 
 
     /**
