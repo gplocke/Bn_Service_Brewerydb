@@ -497,10 +497,10 @@ class Bn_Service_Brewerydb
         }
 
         // Server provides error messages in http_code and error vars.  If not 200, we have an error.
-        if (isset($this->_lastParsedResponse->error)) {
+        if (isset($this->_lastParsedResponse['error'])) {
             require_once 'Bn/Service/Brewerydb/Exception.php';
             throw new Bn_Service_Brewerydb_Exception('Brewerydb Service Error: ' .
-                    $this->_lastParsedResponse->error->message);
+                    $this->_lastParsedResponse['error']['message']);
         }
         
         // if it was xml, we'll remove the attributes that were attached to the 
